@@ -2,28 +2,90 @@
 
 import cv2
 from cv2 import dnn_superres
+from PIL import Image
+from PIL import ImageFilter
 import os
 
 dirname = os.path.dirname(__file__)
-scale = 8
-filename = 'elon-head.png'
+scaleFactor = 8
+filename = 'elon-head'
+ext = 'png'
 
-# Create an SR object
-sr = dnn_superres.DnnSuperResImpl_create()
+def scaleUp(source:str, dest:str):
+    global scaleFactor, filename, dirname
 
-# Read image
-image = cv2.imread(f'{dirname}/Input/{filename}')
+    # Create an SR object
+    sr = dnn_superres.DnnSuperResImpl_create()
 
-# Read the desired model
-path = f'{dirname}/Model/LapSRN_x8.pb'
-sr.readModel(path)
+    # Read image
+    image = cv2.imread(source)
 
-# Set the desired model and scale to get correct pre- and post-processing
-sr.setModel("lapsrn", scale)
+    # Read the desired model
+    path = f'{dirname}/Model/LapSRN_x8.pb'
+    sr.readModel(path)
 
-# Upscale the image
-result = sr.upsample(image)
+    # Set the desired model and scale to get correct pre- and post-processing
+    sr.setModel("lapsrn", scaleFactor)
 
-# Save the image
-cv2.imwrite(f'{dirname}/Output/{filename}', result)
+    # Upscale the image
+    result = sr.upsample(image)
 
+    # Save the image
+    cv2.imwrite(dest, result)
+
+def sharpen(source:str, dest:str):
+    global dirname, filename
+
+    # Open an already existing image
+    imageObject = Image.open(source)
+
+    # Apply sharp filter
+    sharpened = imageObject.filter(ImageFilter.SHARPEN)
+
+    # Show the sharpened images
+    sharpened.save(dest)
+
+def shrink(source:str, dest:str):
+    global dirname, filename
+
+    image = Image.open(source)
+    width, height = image.size
+    image = image.resize((int(width/8), int(height/8)))
+    image.save(dest)
+
+#-------------------------Fails---------------------------
+#VERY bad
+#orig = f'{dirname}/Input/{filename}.{ext}'
+#dest = f'{dirname}/Output/{filename}_origShrunk.{ext}'
+#shrink(orig, dest)
+#scaleUp(dest, dest)
+#scaleUp(dest, dest)
+
+#About the same as original image
+#orig = f'{dirname}/Input/{filename}.{ext}'
+#dest = f'{dirname}/Output/{filename}_justScale.{ext}'
+#scaleUp(orig, dest)
+
+#Worse than sharpen first
+#orig = f'{dirname}/Input/{filename}.{ext}'
+#dest = f'{dirname}/Output/{filename}_sharpenLast.{ext}'
+#scaleUp(orig, dest)
+#sharpen(dest, dest)
+
+#Starts giving deep-fried effect after first sharpen
+#orig = f'{dirname}/Input/{filename}.{ext}'
+#dest = f'{dirname}/Output/{filename}_polySharpen.{ext}'
+#sharpen(orig, dest)
+#sharpen(dest, dest)
+#sharpen(dest, dest)
+#sharpen(dest, dest)
+#sharpen(dest, dest)
+#scaleUp(dest, dest)
+#-------------------------Fails---------------------------
+
+
+#A little better than original image
+orig = f'{dirname}/Input/{filename}.{ext}'
+dest = f'{dirname}/Output/{filename}_sharpenFirst.{ext}'
+sharpen(orig, dest)
+scaleUp(dest, dest)
